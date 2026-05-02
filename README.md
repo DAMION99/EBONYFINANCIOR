@@ -5,10 +5,13 @@ A lightweight, self-hosted CRM backend designed to work seamlessly with iOS Shor
 ## Features
 
 - 📇 **Contact Management** - Store names, emails, phones, companies, and notes
+- 📸 **Contact Photos** - Upload and manage contact profile pictures
 - 🏷️ **Tagging System** - Organize contacts with custom tags
 - 📝 **Interaction Tracking** - Log calls, meetings, emails, and notes
 - ⏰ **Reminders** - Set follow-up reminders for contacts
 - 🔍 **Search** - Quick search across all contact fields
+- 📤 **Import/Export** - CSV and vCard import/export support
+- 🌐 **Web Dashboard** - Beautiful web interface for managing contacts
 - 🔒 **API Key Authentication** - Secure your data
 - 📱 **iOS Shortcuts Ready** - Designed for Shortcuts app integration
 
@@ -52,6 +55,27 @@ For development with auto-reload:
 ```bash
 npm run dev
 ```
+
+## Web Dashboard
+
+Access the web dashboard at `http://localhost:3000` in your browser.
+
+### Features
+
+- **Contact Management** - Add, edit, delete, and search contacts
+- **Photo Uploads** - Drag and drop or select photos for contacts
+- **Interactions & Reminders** - Log interactions and set reminders
+- **Tags** - Create and manage contact tags
+- **Import/Export** - Import from CSV or export to CSV/vCard
+- **Responsive Design** - Works on desktop, tablet, and mobile
+
+### Using the Dashboard
+
+1. Open `http://localhost:3000` in your browser
+2. Enter your API key (from `.env` file)
+3. Start managing your contacts!
+
+The dashboard provides a user-friendly alternative to iOS Shortcuts for managing your CRM data.
 
 ## API Documentation
 
@@ -131,6 +155,21 @@ Permanently deletes contact and all associated interactions and reminders.
 **GET** `/api/contacts/search?q=john`
 
 Searches across first_name, last_name, email, phone, and company fields.
+
+### Upload Contact Photo
+**POST** `/api/contacts/:id/photo`
+
+Upload a photo for a contact. Send as `multipart/form-data` with the photo file in the `photo` field.
+
+**Supported formats**: JPEG, PNG, GIF, WebP  
+**Max size**: 5MB
+
+Returns the updated contact with `photo_url` field.
+
+### Delete Contact Photo
+**DELETE** `/api/contacts/:id/photo`
+
+Removes the photo from a contact and deletes the file from the server.
 
 ---
 
@@ -230,6 +269,50 @@ Marks reminder as completed.
 
 ### Delete Reminder
 **DELETE** `/api/reminders/:id`
+
+---
+
+## Import / Export
+
+### Export Contacts to CSV
+**GET** `/api/export/csv`
+
+Downloads all contacts as a CSV file. Includes all contact fields and tags (semicolon-separated).
+
+**Response**: `text/csv` file download
+
+### Import Contacts from CSV
+**POST** `/api/import/csv`
+
+Upload a CSV file to import contacts. Send as `multipart/form-data` with the CSV file in the `file` field.
+
+**CSV Format**:
+```csv
+id,first_name,last_name,email,phone,company,job_title,notes,photo_url,tags
+,John,Doe,john@example.com,+1234567890,Acme Inc,CEO,Great contact,,client;VIP
+```
+
+The first row should be headers. The `id` column is ignored during import. Tags should be semicolon-separated.
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Imported 15 contacts",
+  "data": {
+    "imported": [...],
+    "errors": [],
+    "count": 15
+  }
+}
+```
+
+### Export Contacts to vCard
+**GET** `/api/export/vcard`
+
+Downloads all contacts as a vCard (.vcf) file compatible with Apple Contacts, Google Contacts, and other contact management apps.
+
+**Response**: `text/vcard` file download
 
 ---
 
@@ -407,6 +490,14 @@ EBONYFINANCIOR/
 ├── database/
 │   ├── schema.js          # Database initialization
 │   └── queries.js         # Database queries
+├── public/                # Web dashboard
+│   ├── index.html
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── api.js         # API client
+│       └── app.js         # Dashboard logic
+├── uploads/               # Contact photos
 ├── package.json
 ├── .env.example
 ├── README.md
@@ -456,14 +547,19 @@ For issues or questions:
 
 ## Roadmap
 
+Completed features:
+- [x] Web dashboard for managing contacts
+- [x] Import/export contacts (CSV, vCard)
+- [x] Contact photos
+
 Future enhancements:
-- [ ] Web dashboard for managing contacts
-- [ ] Import/export contacts (CSV, vCard)
 - [ ] Custom fields
-- [ ] Contact photos
 - [ ] Email/SMS integration
 - [ ] Analytics and insights
 - [ ] Shared contacts (multi-user)
+- [ ] Batch operations
+- [ ] Advanced search filters
+- [ ] Contact merging/deduplication
 
 ---
 

@@ -408,6 +408,209 @@ Add shortcuts to Home Screen for quick access to:
 
 ---
 
+## 8. Upload Contact Photo Shortcut
+
+**Purpose**: Add or update a contact's photo
+
+### Steps to Build:
+
+1. **Get Contents of URL**: Fetch contacts
+   - URL: `[Base URL]/api/contacts`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+2. **Get Dictionary Value**: Get `data`
+
+3. **Choose from List**: Select contact
+   - Display: `[first_name] [last_name]`
+   - Save as: `selectedContact`
+
+4. **Get Dictionary Value**: Get `id` from `selectedContact`
+   - Save as: `contactId`
+
+5. **Select Photo**: Choose photo from library
+   - Save as: `photo`
+
+6. **Set Name**: Name the file
+   - Name: `contact-photo.jpg`
+   - Input: `photo`
+   - Save as: `namedPhoto`
+
+7. **Get Contents of URL**: Upload photo
+   - URL: `[Base URL]/api/contacts/[contactId]/photo`
+   - Method: POST
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+   - Request Body: Form
+     - `photo`: `namedPhoto`
+
+8. **Show Notification**: "✅ Photo uploaded successfully!"
+
+---
+
+## 9. Export Contacts (CSV) Shortcut
+
+**Purpose**: Download all contacts as CSV file
+
+### Steps to Build:
+
+1. **Get Contents of URL**:
+   - URL: `[Base URL]/api/export/csv`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+2. **Save File**: Save to Files app
+   - File: Response from URL
+   - Destination: Ask where to save
+   - Filename: `contacts.csv`
+
+3. **Show Notification**: "✅ Exported contacts to CSV"
+
+---
+
+## 10. Export Contacts (vCard) Shortcut
+
+**Purpose**: Download all contacts as vCard for importing to Contacts app
+
+### Steps to Build:
+
+1. **Get Contents of URL**:
+   - URL: `[Base URL]/api/export/vcard`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+2. **Save File**: Save to Files app
+   - File: Response from URL
+   - Destination: Ask where to save
+   - Filename: `contacts.vcf`
+
+3. **Ask**: "Import to Contacts app?"
+   - Type: Yes/No
+
+4. **If**: Answer is Yes
+   - **Add to Contacts**: Import vCard file
+
+5. **Show Notification**: "✅ Exported contacts to vCard"
+
+---
+
+## 11. Import Contacts (CSV) Shortcut
+
+**Purpose**: Import contacts from CSV file
+
+### Steps to Build:
+
+1. **Select File**: Choose CSV file
+   - Type: CSV
+   - Save as: `csvFile`
+
+2. **Get Contents of URL**: Upload CSV
+   - URL: `[Base URL]/api/import/csv`
+   - Method: POST
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+   - Request Body: Form
+     - `file`: `csvFile`
+
+3. **Get Dictionary from Input**: Parse response
+
+4. **Get Dictionary Value**: Get `message`
+   - Save as: `message`
+
+5. **Show Notification**: `[message]`
+
+---
+
+## 12. Take Photo and Add to Contact Shortcut
+
+**Purpose**: Take a photo with camera and add to existing contact
+
+### Steps to Build:
+
+1. **Take Photo**: Use camera
+   - Save as: `newPhoto`
+
+2. **Get Contents of URL**: Fetch contacts
+   - URL: `[Base URL]/api/contacts`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+3. **Choose from List**: Select contact
+
+4. **Get Dictionary Value**: Get `id`
+   - Save as: `contactId`
+
+5. **Set Name**: Name the photo
+   - Name: `contact-photo.jpg`
+   - Input: `newPhoto`
+   - Save as: `namedPhoto`
+
+6. **Get Contents of URL**: Upload photo
+   - URL: `[Base URL]/api/contacts/[contactId]/photo`
+   - Method: POST
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+   - Request Body: Form
+     - `photo`: `namedPhoto`
+
+7. **Show Notification**: "📸 Photo added to contact!"
+
+---
+
+## 13. Bulk Add Tags Shortcut
+
+**Purpose**: Add same tag to multiple contacts
+
+### Steps to Build:
+
+1. **Get Contents of URL**: Get all tags
+   - URL: `[Base URL]/api/tags`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+2. **Get Dictionary Value**: Get `data`
+
+3. **Choose from List**: Select tag
+   - Display: `[name]`
+   - Save as: `selectedTag`
+
+4. **Get Dictionary Value**: Get `id` from `selectedTag`
+   - Save as: `tagId`
+
+5. **Get Contents of URL**: Fetch contacts
+   - URL: `[Base URL]/api/contacts`
+   - Method: GET
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+6. **Choose from List**: Select contacts (allow multiple)
+   - Display: `[first_name] [last_name]`
+   - Allow Multiple Selection: Yes
+   - Save as: `selectedContacts`
+
+7. **Repeat with Each**: Loop through `selectedContacts`
+   - Current Item: `contact`
+
+8. **Get Dictionary Value**: Get `id` from `contact`
+   - Save as: `contactId`
+
+9. **Get Contents of URL**: Add tag to contact
+   - URL: `[Base URL]/api/contacts/[contactId]/tags/[tagId]`
+   - Method: POST
+   - Headers:
+      - `X-API-Key`: `[Your API Key]`
+
+10. **End Repeat**
+
+11. **Show Notification**: "✅ Tag added to selected contacts!"
+
+---
+
 ## Advanced: Automation Ideas
 
 ### Daily Reminder Check

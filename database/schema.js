@@ -20,6 +20,7 @@ class CRMDatabase {
         company TEXT,
         job_title TEXT,
         notes TEXT,
+        photo_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )

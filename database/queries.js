@@ -6,8 +6,8 @@ class ContactQueries {
   // Contact operations
   createContact(data) {
     const stmt = this.db.prepare(`
-      INSERT INTO contacts (first_name, last_name, email, phone, company, job_title, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO contacts (first_name, last_name, email, phone, company, job_title, notes, photo_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -17,7 +17,8 @@ class ContactQueries {
       data.phone || null,
       data.company || null,
       data.job_title || null,
-      data.notes || null
+      data.notes || null,
+      data.photo_url || null
     );
 
     return this.getContact(result.lastInsertRowid);
@@ -82,6 +83,10 @@ class ContactQueries {
     if (data.notes !== undefined) {
       fields.push('notes = ?');
       values.push(data.notes);
+    }
+    if (data.photo_url !== undefined) {
+      fields.push('photo_url = ?');
+      values.push(data.photo_url);
     }
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
@@ -283,6 +288,153 @@ class ContactQueries {
   deleteReminder(id) {
     const stmt = this.db.prepare('DELETE FROM reminders WHERE id = ?');
     return stmt.run(id);
+  }
+
+  // Import/Export operations
+  exportToCSV() {
+    const contacts = this.getAllContacts(10000, 0);
+    const headers = ['id', 'first_name', 'last_name', 'email', 'phone', 'company', 'job_title', 'notes', 'photo_url', 'tags'];
+
+    let csv = headers.join(',') + '\n';
+
+    contacts.forEach(contact => {
+      const tags = contact.tags ? contact.tags.map(t => t.name).join(';') : '';
+      const row = [
+        contact.id,
+        this.escapeCSV(contact.first_name),
+        this.escapeCSV(contact.last_name),
+        this.escapeCSV(contact.email),
+        this.escapeCSV(contact.phone),
+        this.escapeCSV(contact.company),
+        this.escapeCSV(contact.job_title),
+        this.escapeCSV(contact.notes),
+        this.escapeCSV(contact.photo_url),
+        this.escapeCSV(tags)
+      ];
+      csv += row.join(',') + '\n';
+    });
+
+    return csv;
+  }
+
+  escapeCSV(field) {
+    if (!field) return '';
+    const stringField = String(field);
+    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+      return `"${stringField.replace(/"/g, '""')}"`;
+    }
+    return stringField;
+  }
+
+  importFromCSV(csvData, skipFirstRow = true) {
+    const lines = csvData.trim().split('\n');
+    const imported = [];
+    const errors = [];
+
+    const startIndex = skipFirstRow ? 1 : 0;
+
+    for (let i = startIndex; i < lines.length; i++) {
+      try {
+        const values = this.parseCSVLine(lines[i]);
+
+        if (values.length < 2) continue;
+
+        const contactData = {
+          first_name: values[1] || '',
+          last_name: values[2] || null,
+          email: values[3] || null,
+          phone: values[4] || null,
+          company: values[5] || null,
+          job_title: values[6] || null,
+          notes: values[7] || null,
+          photo_url: values[8] || null
+        };
+
+        if (!contactData.first_name) continue;
+
+        const contact = this.createContact(contactData);
+
+        if (values[9]) {
+          const tags = values[9].split(';').filter(t => t.trim());
+          tags.forEach(tagName => {
+            const tag = this.createTag(tagName.trim());
+            this.addTagToContact(contact.id, tag.id);
+          });
+        }
+
+        imported.push(contact);
+      } catch (error) {
+        errors.push({ line: i + 1, error: error.message });
+      }
+    }
+
+    return { imported, errors, count: imported.length };
+  }
+
+  parseCSVLine(line) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current);
+
+    return values;
+  }
+
+  exportToVCard() {
+    const contacts = this.getAllContacts(10000, 0);
+    let vcards = '';
+
+    contacts.forEach(contact => {
+      vcards += 'BEGIN:VCARD\n';
+      vcards += 'VERSION:3.0\n';
+      vcards += `FN:${contact.first_name} ${contact.last_name || ''}\n`.trim() + '\n';
+      vcards += `N:${contact.last_name || ''};${contact.first_name};;;\n`;
+
+      if (contact.email) {
+        vcards += `EMAIL:${contact.email}\n`;
+      }
+      if (contact.phone) {
+        vcards += `TEL:${contact.phone}\n`;
+      }
+      if (contact.company) {
+        vcards += `ORG:${contact.company}\n`;
+      }
+      if (contact.job_title) {
+        vcards += `TITLE:${contact.job_title}\n`;
+      }
+      if (contact.notes) {
+        vcards += `NOTE:${contact.notes.replace(/\n/g, '\\n')}\n`;
+      }
+      if (contact.photo_url) {
+        vcards += `PHOTO;VALUE=URI:${contact.photo_url}\n`;
+      }
+      if (contact.tags && contact.tags.length > 0) {
+        vcards += `CATEGORIES:${contact.tags.map(t => t.name).join(',')}\n`;
+      }
+
+      vcards += 'END:VCARD\n\n';
+    });
+
+    return vcards;
   }
 }
 

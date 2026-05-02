@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal CRM</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="login-page" class="page">
+        <div class="login-container">
+            <div class="login-card">
+                <h1>📇 Personal CRM</h1>
+                <p class="subtitle">Enter your API key to continue</p>
+                <form id="login-form">
+                    <div class="form-group">
+                        <input
+                            type="password"
+                            id="api-key-input"
+                            placeholder="API Key"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Login</button>
+                    <div id="login-error" class="error-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-page" class="page hidden">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>📇 CRM</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-page="contacts">
+                    <span class="icon">👤</span> Contacts
+                </li>
+                <li class="nav-item" data-page="interactions">
+                    <span class="icon">📝</span> Interactions
+                </li>
+                <li class="nav-item" data-page="reminders">
+                    <span class="icon">⏰</span> Reminders
+                </li>
+                <li class="nav-item" data-page="tags">
+                    <span class="icon">🏷️</span> Tags
+                </li>
+                <li class="nav-item" data-page="import-export">
+                    <span class="icon">📤</span> Import/Export
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn btn-secondary btn-full">Logout</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <!-- Contacts Page -->
+            <div id="contacts-page" class="content-page active">
+                <div class="page-header">
+                    <h1>Contacts</h1>
+                    <div class="header-actions">
+                        <input
+                            type="text"
+                            id="contact-search"
+                            placeholder="Search contacts..."
+                            class="search-input"
+                        >
+                        <button id="add-contact-btn" class="btn btn-primary">+ Add Contact</button>
+                    </div>
+                </div>
+                <div id="contacts-grid" class="contacts-grid"></div>
+            </div>
+
+            <!-- Interactions Page -->
+            <div id="interactions-page" class="content-page">
+                <div class="page-header">
+                    <h1>Recent Interactions</h1>
+                    <button id="add-interaction-btn" class="btn btn-primary">+ Log Interaction</button>
+                </div>
+                <div id="interactions-list" class="list-container"></div>
+            </div>
+
+            <!-- Reminders Page -->
+            <div id="reminders-page" class="content-page">
+                <div class="page-header">
+                    <h1>Upcoming Reminders</h1>
+                    <button id="add-reminder-btn" class="btn btn-primary">+ Add Reminder</button>
+                </div>
+                <div id="reminders-list" class="list-container"></div>
+            </div>
+
+            <!-- Tags Page -->
+            <div id="tags-page" class="content-page">
+                <div class="page-header">
+                    <h1>Tags</h1>
+                    <button id="add-tag-btn" class="btn btn-primary">+ Add Tag</button>
+                </div>
+                <div id="tags-grid" class="tags-grid"></div>
+            </div>
+
+            <!-- Import/Export Page -->
+            <div id="import-export-page" class="content-page">
+                <div class="page-header">
+                    <h1>Import / Export</h1>
+                </div>
+                <div class="import-export-container">
+                    <div class="card">
+                        <h3>Export Contacts</h3>
+                        <p>Download all your contacts in CSV or vCard format</p>
+                        <div class="button-group">
+                            <button id="export-csv-btn" class="btn btn-secondary">Export as CSV</button>
+                            <button id="export-vcard-btn" class="btn btn-secondary">Export as vCard</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Import Contacts</h3>
+                        <p>Upload a CSV file to import contacts</p>
+                        <input type="file" id="import-csv-input" accept=".csv" class="hidden">
+                        <button id="import-csv-btn" class="btn btn-secondary">Choose CSV File</button>
+                        <div id="import-status" class="status-message"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Add/Edit Contact -->
+    <div id="contact-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="contact-modal-title">Add Contact</h2>
+                <button class="close-btn" onclick="closeContactModal()">&times;</button>
+            </div>
+            <form id="contact-form">
+                <input type="hidden" id="contact-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" id="contact-first-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input type="text" id="contact-last-name">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="contact-email">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="contact-phone">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Company</label>
+                        <input type="text" id="contact-company">
+                    </div>
+                    <div class="form-group">
+                        <label>Job Title</label>
+                        <input type="text" id="contact-job-title">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="contact-notes" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Photo</label>
+                    <input type="file" id="contact-photo" accept="image/*">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeContactModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add Interaction -->
+    <div id="interaction-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Log Interaction</h2>
+                <button class="close-btn" onclick="closeInteractionModal()">&times;</button>
+            </div>
+            <form id="interaction-form">
+                <div class="form-group">
+                    <label>Contact *</label>
+                    <select id="interaction-contact" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="interaction-type" required>
+                        <option value="call">📞 Call</option>
+                        <option value="meeting">🤝 Meeting</option>
+                        <option value="email">📧 Email</option>
+                        <option value="note">📝 Note</option>
+                        <option value="message">💬 Message</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="interaction-title">
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="interaction-notes" rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeInteractionModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Interaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add Reminder -->
+    <div id="reminder-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Reminder</h2>
+                <button class="close-btn" onclick="closeReminderModal()">&times;</button>
+            </div>
+            <form id="reminder-form">
+                <div class="form-group">
+                    <label>Contact *</label>
+                    <select id="reminder-contact" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="reminder-title" required>
+                </div>
+                <div class="form-group">
+                    <label>Date & Time *</label>
+                    <input type="datetime-local" id="reminder-date" required>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="reminder-notes" rows="3"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeReminderModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Reminder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

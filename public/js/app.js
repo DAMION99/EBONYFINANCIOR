@@ -3,6 +3,7 @@ let allContacts = [];
 let interactions = [];
 let reminders = [];
 let tags = [];
+let photoFilter = 'all';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
@@ -120,7 +121,7 @@ async function loadContacts() {
         const response = await api.getContacts();
         contacts = response.data;
         allContacts = [...contacts];
-        renderContacts(contacts);
+        applyFilters();
     } catch (error) {
         console.error('Failed to load contacts:', error);
     }
@@ -373,21 +374,44 @@ function viewContactDetails(id) {
     editContact(id);
 }
 
-// Search
-function handleContactSearch(e) {
-    const query = e.target.value.toLowerCase().trim();
+// Photo filter
+function setPhotoFilter(filter) {
+    photoFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.filter === filter);
+    });
+    applyFilters();
+}
 
-    if (!query) {
-        renderContacts(allContacts);
-        return;
+function applyFilters() {
+    const query = document.getElementById('contact-search').value.toLowerCase().trim();
+    let filtered = [...allContacts];
+
+    if (photoFilter === 'with-photo') {
+        filtered = filtered.filter(c => c.photo_url);
+    } else if (photoFilter === 'no-photo') {
+        filtered = filtered.filter(c => !c.photo_url);
     }
 
-    const filtered = allContacts.filter(contact => {
-        const searchStr = `${contact.first_name} ${contact.last_name} ${contact.email} ${contact.phone} ${contact.company}`.toLowerCase();
-        return searchStr.includes(query);
-    });
+    if (query) {
+        filtered = filtered.filter(contact => {
+            const searchStr = `${contact.first_name} ${contact.last_name} ${contact.email} ${contact.phone} ${contact.company}`.toLowerCase();
+            return searchStr.includes(query);
+        });
+    }
+
+    const withPhoto = allContacts.filter(c => c.photo_url).length;
+    const countEl = document.getElementById('contacts-count');
+    if (countEl) {
+        countEl.textContent = `${allContacts.length} total · ${withPhoto} with photo · ${allContacts.length - withPhoto} without`;
+    }
 
     renderContacts(filtered);
+}
+
+// Search
+function handleContactSearch(e) {
+    applyFilters();
 }
 
 // Interaction modal

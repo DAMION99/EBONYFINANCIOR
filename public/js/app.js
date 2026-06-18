@@ -55,6 +55,10 @@ function setupEventListeners() {
         document.getElementById('import-csv-input').click();
     });
     document.getElementById('import-csv-input').addEventListener('change', handleImportCSV);
+    document.getElementById('import-vcard-btn').addEventListener('click', () => {
+        document.getElementById('import-vcard-input').click();
+    });
+    document.getElementById('import-vcard-input').addEventListener('change', handleImportVCard);
 }
 
 // Authentication
@@ -524,6 +528,35 @@ async function handleExportVCard() {
     } catch (error) {
         alert('Failed to export vCard: ' + error.message);
     }
+}
+
+async function handleImportVCard(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('import-vcard-status');
+
+    try {
+        statusEl.textContent = 'Importing...';
+        statusEl.className = 'status-message';
+
+        const result = await api.importVCard(file);
+
+        statusEl.textContent = result.message;
+        statusEl.className = 'status-message success';
+
+        await loadContacts();
+
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'status-message';
+        }, 5000);
+    } catch (error) {
+        statusEl.textContent = 'Failed to import: ' + error.message;
+        statusEl.className = 'status-message error';
+    }
+
+    e.target.value = '';
 }
 
 async function handleImportCSV(e) {

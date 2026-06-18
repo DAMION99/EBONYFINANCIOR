@@ -206,6 +206,17 @@ class CRMAPI {
             headers: {}
         });
     }
+
+    async importVCard(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.request('/api/import/vcard', {
+            method: 'POST',
+            body: formData,
+            headers: {}
+        });
+    }
 }
 
 const api = new CRMAPI();

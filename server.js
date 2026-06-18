@@ -456,6 +456,180 @@ app.get('/api/export/vcard', (req, res) => {
   }
 });
 
+// ===== VCARD IMPORT =====
+
+function parseVCards(vcfData) {
+  const contacts = [];
+  const blocks = vcfData.match(/BEGIN:VCARD[\s\S]*?END:VCARD/gi) || [];
+
+  for (const block of blocks) {
+    // Unfold folded lines (RFC 6350: CRLF/LF + whitespace = continuation)
+    const unfolded = block.replace(/\r?\n[ \t]/g, '');
+    const lines = unfolded.split(/\r?\n/);
+    const parsed = {};
+
+    for (const line of lines) {
+      const colonIdx = line.indexOf(':');
+      if (colonIdx === -1) continue;
+
+      const nameAndParams = line.substring(0, colonIdx);
+      const value = line.substring(colonIdx + 1);
+      const parts = nameAndParams.split(';');
+      const propName = parts[0].toUpperCase();
+      const params = parts.slice(1).map(p => p.toUpperCase());
+
+      switch (propName) {
+        case 'FN':
+          parsed.fn = value.trim();
+          break;
+        case 'N': {
+          const nParts = value.split(';');
+          parsed.last_name = nParts[0]?.trim() || null;
+          parsed.first_name = nParts[1]?.trim() || null;
+          break;
+        }
+        case 'EMAIL':
+          if (!parsed.email) parsed.email = value.trim();
+          break;
+        case 'TEL':
+          if (!parsed.phone) parsed.phone = value.trim();
+          break;
+        case 'ORG':
+          if (!parsed.company) parsed.company = value.split(';')[0]?.trim() || null;
+          break;
+        case 'TITLE':
+          parsed.job_title = value.trim();
+          break;
+        case 'NOTE':
+          parsed.notes = value.replace(/\\n/g, '\n').replace(/\\,/g, ',').trim();
+          break;
+        case 'PHOTO': {
+          const isBase64 = params.some(p => p === 'ENCODING=B' || p === 'ENCODING=BASE64');
+          if (isBase64) {
+            parsed.photoBase64 = value.replace(/\s/g, '');
+            const typeParam = params.find(p => p.startsWith('TYPE='));
+            const rawExt = typeParam ? typeParam.split('=')[1].toLowerCase() : 'jpg';
+            parsed.photoExt = rawExt === 'jpeg' ? 'jpg' : rawExt;
+          } else if (value.startsWith('data:image/')) {
+            const match = value.match(/^data:image\/(\w+);base64,(.+)$/i);
+            if (match) {
+              const rawExt = match[1].toLowerCase();
+              parsed.photoExt = rawExt === 'jpeg' ? 'jpg' : rawExt;
+              parsed.photoBase64 = match[2];
+            }
+          }
+          break;
+        }
+        case 'CATEGORIES':
+          parsed.tags = value.split(',').map(t => t.trim()).filter(Boolean);
+          break;
+      }
+    }
+
+    if (!parsed.first_name && parsed.fn) {
+      const fnParts = parsed.fn.split(/\s+/);
+      parsed.first_name = fnParts[0] || null;
+      parsed.last_name = fnParts.slice(1).join(' ') || null;
+    }
+
+    if (parsed.first_name) contacts.push(parsed);
+  }
+
+  return contacts;
+}
+
+// Import contacts from vCard — accepts multipart file upload or raw text body
+app.post('/api/import/vcard',
+  (req, res, next) => {
+    const ct = req.headers['content-type'] || '';
+    if (ct.includes('multipart/form-data')) {
+      upload.single('file')(req, res, next);
+    } else {
+      express.text({ type: '*/*', limit: '10mb' })(req, res, next);
+    }
+  },
+  (req, res) => {
+    try {
+      let vcfData;
+
+      if (req.file) {
+        vcfData = fs.readFileSync(req.file.path, 'utf-8');
+        fs.unlinkSync(req.file.path);
+      } else if (typeof req.body === 'string' && req.body.trim()) {
+        vcfData = req.body;
+      } else {
+        return res.status(400).json({ success: false, error: 'No vCard data provided. Upload a .vcf file or send raw vCard text.' });
+      }
+
+      const parsedContacts = parseVCards(vcfData);
+      const imported = [];
+      const skipped = [];
+      const errors = [];
+
+      for (const parsed of parsedContacts) {
+        try {
+          if (parsed.email) {
+            const existing = queries.findContactByEmail(parsed.email);
+            if (existing) {
+              skipped.push(`${parsed.first_name} ${parsed.last_name || ''}`.trim());
+              continue;
+            }
+          }
+
+          let photoUrl = null;
+          if (parsed.photoBase64) {
+            const ext = parsed.photoExt || 'jpg';
+            const filename = `contact-${Date.now()}-${Math.round(Math.random() * 1e9)}.${ext}`;
+            const photoPath = path.join(uploadsDir, filename);
+            fs.writeFileSync(photoPath, Buffer.from(parsed.photoBase64, 'base64'));
+            photoUrl = `/uploads/${filename}`;
+          }
+
+          const contact = queries.createContact({
+            first_name: parsed.first_name,
+            last_name: parsed.last_name || null,
+            email: parsed.email || null,
+            phone: parsed.phone || null,
+            company: parsed.company || null,
+            job_title: parsed.job_title || null,
+            notes: parsed.notes || null,
+            photo_url: photoUrl
+          });
+
+          if (parsed.tags && parsed.tags.length > 0) {
+            parsed.tags.forEach(tagName => {
+              const tag = queries.createTag(tagName);
+              queries.addTagToContact(contact.id, tag.id);
+            });
+          }
+
+          imported.push(contact);
+        } catch (err) {
+          errors.push({
+            name: `${parsed.first_name} ${parsed.last_name || ''}`.trim(),
+            error: err.message
+          });
+        }
+      }
+
+      const parts = [`Imported ${imported.length} contact${imported.length !== 1 ? 's' : ''}`];
+      if (skipped.length > 0) parts.push(`${skipped.length} already existed (skipped)`);
+      if (errors.length > 0) parts.push(`${errors.length} failed`);
+
+      res.json({
+        success: true,
+        message: parts.join(', '),
+        data: { imported: imported.length, skipped: skipped.length, errors }
+      });
+    } catch (error) {
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

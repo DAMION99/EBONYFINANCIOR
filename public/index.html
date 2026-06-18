@@ -129,6 +129,13 @@
                         <button id="import-csv-btn" class="btn btn-secondary">Choose CSV File</button>
                         <div id="import-status" class="status-message"></div>
                     </div>
+                    <div class="card">
+                        <h3>Import from iCloud</h3>
+                        <p>Upload a .vcf file exported from the iOS Contacts app. Photos and all fields are imported automatically. Contacts with a matching email are skipped.</p>
+                        <input type="file" id="import-vcard-input" accept=".vcf,.vcard" class="hidden">
+                        <button id="import-vcard-btn" class="btn btn-primary">Choose .vcf File</button>
+                        <div id="import-vcard-status" class="status-message"></div>
+                    </div>
                 </div>
             </div>
         </main>

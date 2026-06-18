@@ -130,6 +130,12 @@ class ContactQueries {
     return contacts;
   }
 
+  findContactByEmail(email) {
+    if (!email) return null;
+    const stmt = this.db.prepare('SELECT id FROM contacts WHERE LOWER(email) = LOWER(?) LIMIT 1');
+    return stmt.get(email.trim()) || null;
+  }
+
   // Tag operations
   createTag(name, color = '#3B82F6') {
     const stmt = this.db.prepare('INSERT INTO tags (name, color) VALUES (?, ?)');

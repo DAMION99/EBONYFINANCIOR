@@ -3,6 +3,7 @@ let allContacts = [];
 let interactions = [];
 let reminders = [];
 let tags = [];
+let photoFilter = 'all';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
@@ -54,6 +55,10 @@ function setupEventListeners() {
         document.getElementById('import-csv-input').click();
     });
     document.getElementById('import-csv-input').addEventListener('change', handleImportCSV);
+    document.getElementById('import-vcard-btn').addEventListener('click', () => {
+        document.getElementById('import-vcard-input').click();
+    });
+    document.getElementById('import-vcard-input').addEventListener('change', handleImportVCard);
 }
 
 // Authentication
@@ -120,7 +125,7 @@ async function loadContacts() {
         const response = await api.getContacts();
         contacts = response.data;
         allContacts = [...contacts];
-        renderContacts(contacts);
+        applyFilters();
     } catch (error) {
         console.error('Failed to load contacts:', error);
     }
@@ -373,21 +378,44 @@ function viewContactDetails(id) {
     editContact(id);
 }
 
-// Search
-function handleContactSearch(e) {
-    const query = e.target.value.toLowerCase().trim();
+// Photo filter
+function setPhotoFilter(filter) {
+    photoFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.filter === filter);
+    });
+    applyFilters();
+}
 
-    if (!query) {
-        renderContacts(allContacts);
-        return;
+function applyFilters() {
+    const query = document.getElementById('contact-search').value.toLowerCase().trim();
+    let filtered = [...allContacts];
+
+    if (photoFilter === 'with-photo') {
+        filtered = filtered.filter(c => c.photo_url);
+    } else if (photoFilter === 'no-photo') {
+        filtered = filtered.filter(c => !c.photo_url);
     }
 
-    const filtered = allContacts.filter(contact => {
-        const searchStr = `${contact.first_name} ${contact.last_name} ${contact.email} ${contact.phone} ${contact.company}`.toLowerCase();
-        return searchStr.includes(query);
-    });
+    if (query) {
+        filtered = filtered.filter(contact => {
+            const searchStr = `${contact.first_name} ${contact.last_name} ${contact.email} ${contact.phone} ${contact.company}`.toLowerCase();
+            return searchStr.includes(query);
+        });
+    }
+
+    const withPhoto = allContacts.filter(c => c.photo_url).length;
+    const countEl = document.getElementById('contacts-count');
+    if (countEl) {
+        countEl.textContent = `${allContacts.length} total · ${withPhoto} with photo · ${allContacts.length - withPhoto} without`;
+    }
 
     renderContacts(filtered);
+}
+
+// Search
+function handleContactSearch(e) {
+    applyFilters();
 }
 
 // Interaction modal
@@ -500,6 +528,35 @@ async function handleExportVCard() {
     } catch (error) {
         alert('Failed to export vCard: ' + error.message);
     }
+}
+
+async function handleImportVCard(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('import-vcard-status');
+
+    try {
+        statusEl.textContent = 'Importing...';
+        statusEl.className = 'status-message';
+
+        const result = await api.importVCard(file);
+
+        statusEl.textContent = result.message;
+        statusEl.className = 'status-message success';
+
+        await loadContacts();
+
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'status-message';
+        }, 5000);
+    } catch (error) {
+        statusEl.textContent = 'Failed to import: ' + error.message;
+        statusEl.className = 'status-message error';
+    }
+
+    e.target.value = '';
 }
 
 async function handleImportCSV(e) {

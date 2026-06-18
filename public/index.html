@@ -70,6 +70,14 @@
                         <button id="add-contact-btn" class="btn btn-primary">+ Add Contact</button>
                     </div>
                 </div>
+                <div class="contacts-controls">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all" onclick="setPhotoFilter('all')">All</button>
+                        <button class="filter-tab" data-filter="with-photo" onclick="setPhotoFilter('with-photo')">With Photo</button>
+                        <button class="filter-tab" data-filter="no-photo" onclick="setPhotoFilter('no-photo')">No Photo</button>
+                    </div>
+                    <span id="contacts-count" class="contacts-count"></span>
+                </div>
                 <div id="contacts-grid" class="contacts-grid"></div>
             </div>
 
@@ -120,6 +128,13 @@
                         <input type="file" id="import-csv-input" accept=".csv" class="hidden">
                         <button id="import-csv-btn" class="btn btn-secondary">Choose CSV File</button>
                         <div id="import-status" class="status-message"></div>
+                    </div>
+                    <div class="card">
+                        <h3>Import from iCloud</h3>
+                        <p>Upload a .vcf file exported from the iOS Contacts app. Photos and all fields are imported automatically. Contacts with a matching email are skipped.</p>
+                        <input type="file" id="import-vcard-input" accept=".vcf,.vcard" class="hidden">
+                        <button id="import-vcard-btn" class="btn btn-primary">Choose .vcf File</button>
+                        <div id="import-vcard-status" class="status-message"></div>
                     </div>
                 </div>
             </div>

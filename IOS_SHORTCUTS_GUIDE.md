@@ -611,6 +611,77 @@ Add shortcuts to Home Screen for quick access to:
 
 ---
 
+---
+
+## 14. Sync iCloud Contacts
+
+**Purpose**: Pull all contacts from the iOS Contacts app (which syncs with iCloud) into your CRM in one tap. Contacts already in the CRM (matched by email) are automatically skipped so you won't get duplicates.
+
+### How it works
+
+The shortcut reads your device contacts, converts them to vCard format, and sends the .vcf file to the `/api/import/vcard` endpoint. The server parses each contact, extracts photos, and creates CRM records.
+
+### Steps to Build (iOS 16+):
+
+1. **Find Contacts**
+   - Action: Find Contacts
+   - Sort: Any
+   - Limit: Off (import all)
+   - Save output as: `allContacts`
+
+2. **Get Details of Contacts**
+   - Input: `allContacts`
+   - Get: **vCard**
+   - Save as: `vcardList`
+
+3. **Combine Text**
+   - Input: `vcardList`
+   - Separator: New Lines
+   - Save as: `vcardText`
+
+4. **Set Name**
+   - Input: `vcardText`
+   - Name: `contacts.vcf`
+   - Save as: `vcardFile`
+
+5. **Get Contents of URL**
+   - URL: `[Base URL]/api/import/vcard`
+   - Method: POST
+   - Headers:
+     - `X-API-Key`: `[Your API Key]`
+   - Request Body: **Form**
+     - Key: `file`  Value: `vcardFile`
+
+6. **Get Dictionary from Input**: Parse response
+
+7. **Get Dictionary Value**: Get `message` from Dictionary
+
+8. **Show Notification**: `[message]`
+
+---
+
+### Alternative for older iOS (manual .vcf export):
+
+If the **Get Details of Contacts → vCard** step is not available on your iOS version:
+
+1. Open the **Contacts** app on iPhone
+2. Tap a contact → tap **Share Contact** → **Export vCard** → save to Files app
+3. To export all at once: On a Mac, open Contacts → select all (⌘A) → File → Export → Export vCard → AirDrop to iPhone
+4. In iOS Shortcuts:
+   - Action: **Select File** (type: `.vcf`)
+   - Save as: `vcardFile`
+5. Continue from step 5 above (Get Contents of URL)
+
+---
+
+### Tips
+
+- Run this shortcut whenever you add new contacts to iCloud — existing ones are skipped automatically
+- Photos embedded in your iCloud contacts are imported too
+- Add this shortcut to your Home Screen for one-tap sync
+
+---
+
 ## Advanced: Automation Ideas
 
 ### Daily Reminder Check
